@@ -31,3 +31,15 @@ body {
     text-wrap: balance;
   }
 }
+
+.montserrat-700 {
+  font-family: var(--font-montserrat-700);
+}
+
+.montserrat-800 {
+  font-family: var(--font-montserrat-800);
+}
+
+.montserrat-900 {
+  font-family: var(--font-montserrat-900);
+}
