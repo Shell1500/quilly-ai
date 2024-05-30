@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFeatherPointed,
   faFileExcel,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
-import { TailSpin } from "react-loader-spinner";
 import axios from "axios";
 import useProgress from "../../hooks/progress";
 
@@ -15,8 +14,8 @@ export default function Home() {
   const [selectedButton, setSelectedButton] = useState("1");
   const [isFileUploaded, setFileUploaded] = useState(false);
   const [fileName, setFileName] = useState("");
-  const [isUserSubmitted, setUserSubmitted] = useState(false);
-  const [recvdFile, setRecvdFile] = useState(true);
+  const [recvdFile, setRecvdFile] = useState<Boolean>(false);
+  const [newFileData, setFileData] = useState(null);
   const [fileForProcessing, setFileForProcessing] = useState<File | null>(null);
   const handleButtonClick = (buttonID: any) => {
     console.log(buttonID);
@@ -54,7 +53,11 @@ export default function Home() {
       formData.append("file", fileForProcessing);
       formData.append("buttonID", selectedButton);
 
+      // Loader progress.
       start();
+      setRecvdFile(false);
+
+      // Actual Request.
       const response = await axios.post(
         "http://127.0.0.1:8080/process",
         formData,
@@ -63,38 +66,46 @@ export default function Home() {
         }
       );
 
+      // Response.
       if (response.status === 200) {
         console.log(response);
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `quilly_${fileName}`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        setFileData(response.data);
       }
     } catch (error) {
       console.error(`Error: ${error}`);
     } finally {
+      // Finish loader.
+      console.log("HERE");
+      setRecvdFile(true);
       done();
     }
   };
 
-  const downloadFile = () => {};
+  const handleDownload = () => {
+    if (newFileData) {
+      const url = window.URL.createObjectURL(new Blob([newFileData]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `quilly_${fileName}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24 bg-slate-950">
-      <div className="flex flex-col w-3/5">
+    <main className="flex min-h-screen flex-col items-center justify-between p-8 md:p-24 bg-slate-950">
+      <div className="flex flex-col w-full lg:w-3/5">
         <div className="main-title justify-center">
-          <div className="flex flex-row justify-center">
-            <p className="montserrat-900 text-4xl">
+          <div className="flex flex-col-reverse items-center  md:flex-row justify-center">
+            <p className="montserrat-900 text-center md:text-left mt-2 md:mt-0 text-4xl ">
               Welcome to <span className="text-green-700">Quilly AI</span>
             </p>
             <div className="ml-4">
               <FontAwesomeIcon
                 icon={faFeatherPointed}
                 size="lg"
-                className="w-10 h-10 text-white"
+                className="w-8 h-8 md:w-10 md:h-10 text-white"
               />
             </div>
           </div>
@@ -108,7 +119,9 @@ export default function Home() {
         </div>
 
         <div className="mt-10 border-t-2 border-gray-800 pt-8">
-          <p className="text-left text-3xl montserrat-800 ">Introduction</p>
+          <p className="text-center md:text-left text-3xl montserrat-800 ">
+            Introduction
+          </p>
           <p className="mt-4 p-4 text-left text-sm montserrat-700 rounded-3xl bg-gray-800">
             Quilly works by reading your product specifications from an{" "}
             <span className="text-green-700">Excel</span> spreadsheet. For each
@@ -126,7 +139,7 @@ export default function Home() {
             {" "}
             <span className="underline">Step 1:</span> Choose your processing.
           </p>
-          <div className="flex flex-row justify-between mt-4 montserrat-700 p-4">
+          <div className="flex flex-col md:flex-row items-center md:justify-between mt-4 montserrat-700 p-4">
             <button
               type="button"
               className={buttonClass("1")}
@@ -218,7 +231,7 @@ export default function Home() {
                 <span className="underline">Step 3:</span> Submit to Quilly.
               </p>
               <p className="mt-4 p-4 text-left text-sm montserrat-700 rounded-3xl bg-gray-800">
-                Once <span className="text-red-600">ready</span>, press{" "}
+                Once ready, press{" "}
                 <span className="text-green-700">'Submit'</span> and Quilly will
                 get to work writing your new product descriptions. Your results
                 will be available for download below.
@@ -236,7 +249,7 @@ export default function Home() {
               </button>
             </div>
           </div>
-          <div className="flex flex-col items-center mt-6 border-t-2 border-gray-800 pt-8">
+          <div className="flex flex-col  mt-6 border-t-2 border-gray-800 pt-8">
             <div>
               <p className="text-left text-3xl montserrat-800">
                 <span className="underline">Step 4:</span> Download your file!
@@ -250,27 +263,14 @@ export default function Home() {
               <button
                 type="button"
                 className={`${buttonClass("button2")} montserrat-700 ${
-                  recvdFile && isUserSubmitted
+                  recvdFile
                     ? "text-white bg-green-700"
                     : "opacity-50 cursor-not-allowed"
                 }`}
-                onClick={() => downloadFile()}
+                onClick={() => handleDownload()}
               >
                 Download
               </button>
-
-              {!recvdFile && (
-                <TailSpin
-                  visible={true}
-                  height="20"
-                  width="20"
-                  color="#4fa94d"
-                  ariaLabel="tail-spin-loading"
-                  radius="1"
-                  wrapperStyle={{}}
-                  wrapperClass="mt-4"
-                />
-              )}
             </div>
           </div>
         </div>
